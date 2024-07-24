@@ -1,9 +1,9 @@
 import unittest
-from flask import Flask
 import json
+from API.user_endpoints import data_manager
 from app import app
 from Model.user import User
-from API.user_endpoints import data_manager
+
 
 class TestUserEndpoints(unittest.TestCase):
     def setUp(self):
@@ -12,10 +12,10 @@ class TestUserEndpoints(unittest.TestCase):
         self.data_manager = data_manager
         self.data_manager.storage = {}
 
-
     def test_create_user(self):
         response = self.app.post('/users', json={
             'email': 'test@example.com',
+            'password': 'password123',
             'first_name': 'Test',
             'last_name': 'User'
         })
@@ -23,7 +23,7 @@ class TestUserEndpoints(unittest.TestCase):
         self.assertIn('test@example.com', str(response.data))
 
     def test_get_users(self):
-        user = User(email='test@example.com',
+        user = User(email='test@example.com', password='password123',
                     first_name='Test', last_name='User')
         self.data_manager.save(user)
         response = self.app.get('/users')
@@ -31,7 +31,7 @@ class TestUserEndpoints(unittest.TestCase):
         self.assertIn('test@example.com', str(response.data))
 
     def test_get_user(self):
-        user = User(email='test@example.com',
+        user = User(email='test@example.com', password='password123',
                     first_name='Test', last_name='User')
         self.data_manager.save(user)
         response = self.app.get(f'/users/{user.id}')
@@ -39,7 +39,7 @@ class TestUserEndpoints(unittest.TestCase):
         self.assertIn('test@example.com', str(response.data))
 
     def test_update_user(self):
-        user = User(email='test@example.com',
+        user = User(email='test@example.com', password='password123',
                     first_name='Test', last_name='User')
         self.data_manager.save(user)
         response = self.app.put(f'/users/{user.id}', json={
@@ -50,7 +50,7 @@ class TestUserEndpoints(unittest.TestCase):
         self.assertIn('Updated', str(response.data))
 
     def test_delete_user(self):
-        user = User(email='test@example.com',
+        user = User(email='test@example.com', password='password123',
                     first_name='Test', last_name='User')
         self.data_manager.save(user)
         response = self.app.delete(f'/users/{user.id}')
