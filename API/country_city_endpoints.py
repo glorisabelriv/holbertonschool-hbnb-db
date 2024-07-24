@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify, abort
 from Model.city import City
 from Model.country import Country
+from Model.user import User
 from datab import db
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from Persistence.DataManager import DataManager
 
 country_city_bp = Blueprint('country_bp', __name__,)
@@ -32,7 +34,12 @@ def get_cities_by_country(country_code):
 
 # POST /cities
 @country_city_bp.route('/cities', methods=['POST'])
+@jwt_required
 def create_city():
+    user = User.query.get(get_jwt_identity())
+    if not user.is_admin:
+        abort(403, description="Admin rights required")
+
     if not request.json or 'name' not in request.json or 'country_code' not in request.json:
         abort(400, "Missing required fields")
 
@@ -42,7 +49,8 @@ def create_city():
     if not data_manager.get(country_code, 'Country'):
         abort(400, "Invalid country code")
 
-    existing_cities = City.query.filter_by(name=name, country_code=country_code).first()
+    existing_cities = City.query.filter_by(
+        name=name, country_code=country_code).first()
     if existing_cities:
         abort(409, "City name already exists in this country")
 
@@ -87,10 +95,13 @@ def update_city(city_id):
 
 # DELETE /cities/<city_id>
 @country_city_bp.route('/cities/<city_id>', methods=['DELETE'])
+@jwt_required
 def delete_city(city_id):
+    user = User.query.get(get_jwt_identity())
+    if not user.is_admin:
+        abort(403, description="Admin rights required")
+
     city = City.query.get(city_id)
-    if not city:
-        abort(404, description="City not found")
     db.session.delete(city)
     db.session.commit()
     return '', 204
