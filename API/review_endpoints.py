@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, abort
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from Model.review import Review
+from Model.user import User
 from datab import db
 from Persistence.DataManager import DataManager
 
@@ -11,6 +12,10 @@ data_manager = DataManager()
 @review_bp.route('/places/<place_id>/reviews', methods=['POST'], endpoint='create_review')
 @jwt_required()
 def create_review(place_id):
+    user = User.query.get(get_jwt_identity())
+    if not user:
+        abort(404, description="User not found")
+
     if not request.json or not all(key in request.json for key in ('user_id', 'rating', 'comment')):
         abort(400, description="Missing required fields")
 
@@ -21,10 +26,14 @@ def create_review(place_id):
     if not (1 <= rating <= 5):
         abort(400, description="Rating must be between 1 and 5")
 
-    review = Review(place_id=place_id, user_id=user_id, rating=rating, comment=comment)
+    review = Review(
+        user_id=user_id,
+        place_id=place_id,
+        rating=rating,
+        comment=comment
+    )
     db.session.add(review)
     db.session.commit()
-
     return jsonify(review.to_dict()), 201
 
 # GET /users/<user_id>/reviews
@@ -56,6 +65,10 @@ def get_review(review_id):
 @review_bp.route('/reviews/<review_id>', methods=['PUT'], endpoint='update_review')
 @jwt_required
 def update_review(review_id):
+    user = User.query.get(get_jwt_identity())
+    if not user.id == Review.query.get(review_id).user_id:
+        abort(403, description="not owner user to edit")
+
     review = Review.query.get(review_id)
     if not review:
         abort(404, description="Review not found")
